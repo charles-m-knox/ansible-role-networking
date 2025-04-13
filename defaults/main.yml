@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT-0
+---
+
+dns:
+  disable_systemd_resolved: false
+
+  # allows resolv.conf to be writeable:
+  # resolv_conf_mutable: false
+
+  # BE CAREFUL SETTING resolv_conf here. if you decide to change it, it will
+  # overwrite all resolv.conf files on ALL systems
+  # resolv_conf: |
+  #   nameserver {{ ip_4090pc }}

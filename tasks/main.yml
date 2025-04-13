@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MIT-0
+---
+
+- name: Networking
+  ansible.builtin.import_tasks:
+    file: networking.yml
+
+- name: DNS
+  ansible.builtin.import_tasks:
+    file: dns.yml

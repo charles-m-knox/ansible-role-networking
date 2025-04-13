@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: MIT-0
+---
+
+- name: Gather facts about running services
+  ansible.builtin.service_facts:
+  when:
+    - ansible_service_mgr == 'systemd'
+  tags:
+    - networking
+
+- name: Create systemd-networkd conf.d directory
+  ansible.builtin.file:
+    path: "/etc/systemd/system/systemd-networkd-wait-online.service.d"
+    state: directory
+    mode: "0755"
+  become: true
+  when:
+    - ansible_service_mgr == 'systemd'
+    - services['systemd-networkd.service'] is defined
+    - services['systemd-networkd.service'].state == 'running'
+  tags:
+    - networking
+
+# if this fix is not applied, then systems using systemd-networkd will
+# wait for up to 2 minutes for wifi & ethernet & other base interfaces to come
+# online - instead, we are OK with just having one interface come online
+# https://wiki.archlinux.org/title/Systemd-networkd#systemd-networkd-wait-online
+- name: Configure systemd-networkd to start as soon as a single interface is available, instead of all of them
+  ansible.builtin.template:
+    src: "networking/systemd-networkd-wait-for-only-one-interface.conf"
+    dest: "/etc/systemd/system/systemd-networkd-wait-online.service.d/wait-for-only-one-interface.conf"
+    mode: "0644"
+  become: true
+  when:
+    - ansible_service_mgr == 'systemd'
+    - services['systemd-networkd.service'] is defined
+    - services['systemd-networkd.service'].state == 'running'
+  tags:
+    - networking
+
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    name: systemd-networkd
+    state: reloaded
+  become: true
+  when:
+    - ansible_service_mgr == 'systemd'
+    - services['systemd-networkd.service'] is defined
+    - services['systemd-networkd.service'].state == 'running'
+  tags:
+    - networking

@@ -1,0 +1,129 @@
+# SPDX-License-Identifier: MIT-0
+
+---
+# - removes systemd-resolved
+# - updates /etc/resolv.conf
+# - makes /etc/resolv.conf unwriteable via "chattr -i"
+#
+# To enable, set the following variables in your host/inventory/wherever:
+#
+# dns:
+#  disable_systemd_resolved: true
+#  resolv_conf: |
+#    nameserver 192.168.1.1
+
+#
+# Note that dns.disable_systemd_resolved defaults to False, and dns.resolv_conf
+# is unset by default (don't set the default value for dns.resolv_conf unless
+# you want that value to be set for ALL your systems - instead, set it for each
+# host for more fine-tuned control).
+#
+# reference:
+#
+# https://askubuntu.com/questions/907246/how-to-disable-systemd-resolved-in-ubuntu#907249
+
+- name: Disable systemd-resolved service
+  ansible.builtin.service:
+    name: systemd-resolved
+    state: stopped
+    enabled: false
+  become: true
+  when:
+    - dns.disable_systemd_resolved
+    - ansible_service_mgr == 'systemd'
+  tags:
+    - dns
+
+- name: Unset immutable flag on /etc/resolv.conf, if needed
+  ansible.builtin.file:
+    attributes: "-i"
+    path: "/etc/resolv.conf"
+  become: true
+  when:
+    - dns.resolv_conf is defined
+    - dns.resolv_conf != ""
+  tags:
+    - dns
+
+- name: Remove /etc/resolv.conf
+  ansible.builtin.file:
+    path: "/etc/resolv.conf"
+    state: absent
+  become: true
+  when:
+    - dns.resolv_conf is defined
+    - dns.resolv_conf != ""
+  tags:
+    - dns
+
+- name: Update /etc/resolv.conf
+  ansible.builtin.template:
+    dest: "/etc/resolv.conf"
+    src: "dns/resolv.conf"
+    mode: "0644"
+  become: true
+  when:
+    - dns.resolv_conf is defined
+    - dns.resolv_conf != ""
+  tags:
+    - dns
+
+- name: Set immutable flag on /etc/resolv.conf
+  ansible.builtin.file:
+    attributes: "+i"
+    path: "/etc/resolv.conf"
+  become: true
+  when:
+    - dns.resolv_conf is defined
+    - dns.resolv_conf != ""
+    - >
+      (dns.resolv_conf_mutable is defined and not dns.resolv_conf_mutable)
+      or (dns.resolv_conf_mutable is not defined)
+  tags:
+    - dns
+
+- name: Unset immutable flag on /etc/resolv.conf
+  ansible.builtin.file:
+    attributes: "-i"
+    path: "/etc/resolv.conf"
+  become: true
+  when:
+    - dns.resolv_conf is defined
+    - dns.resolv_conf != ""
+    - >
+      (dns.resolv_conf_mutable is defined and dns.resolv_conf_mutable)
+  tags:
+    - dns
+
+# some systems may not have NetworkManager at all
+- name: Check if NetworkManager exists
+  ansible.builtin.stat:
+    path: "/etc/NetworkManager"
+  register: networkmanager_installed
+  tags:
+    - dns
+
+- name: Update /etc/NetworkManager/NetworkManager.conf
+  ansible.builtin.template:
+    dest: "/etc/NetworkManager/conf.d/disable-systemd-resolved.conf"
+    src: "dns/disable-systemd-resolved.conf"
+    mode: "0644"
+  become: true
+  when:
+    - dns.disable_systemd_resolved
+    - ansible_service_mgr == 'systemd'
+    - (networkmanager_installed is defined) and (networkmanager_installed)
+  tags:
+    - dns
+
+- name: Restart NetworkManager service
+  ansible.builtin.service:
+    name: NetworkManager
+    state: restarted
+  become: true
+  when:
+    - dns.disable_systemd_resolved
+    - ansible_service_mgr == 'systemd'
+    - (networkmanager_installed is defined) and (networkmanager_installed)
+  tags:
+    - dns
