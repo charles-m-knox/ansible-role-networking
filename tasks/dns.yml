@@ -112,7 +112,7 @@
   when:
     - dns.disable_systemd_resolved
     - ansible_service_mgr == 'systemd'
-    - (networkmanager_installed is defined) and (networkmanager_installed)
+    - networkmanager_installed.stat.exists
   tags:
     - dns
 
@@ -124,6 +124,6 @@
   when:
     - dns.disable_systemd_resolved
     - ansible_service_mgr == 'systemd'
-    - (networkmanager_installed is defined) and (networkmanager_installed)
+    - networkmanager_installed.stat.exists
   tags:
     - dns
