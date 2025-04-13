@@ -1,0 +1,20 @@
+---
+- name: Set the hostname
+  ansible.builtin.hostname:
+    name: "{{ system_hostname }}"
+  become: true
+  when:
+    - system_hostname is defined
+  tags:
+    - hostname
+
+- name: Propagate hostname to /etc/hosts  # noqa no-changed-when
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      echo "{{ system_hostname }}" | tee /etc/hostname
+  become: true
+  when:
+    - system_hostname is defined
+  tags:
+    - hostname

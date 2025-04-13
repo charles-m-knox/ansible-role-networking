@@ -64,7 +64,7 @@ note that root access is required for some of the steps:
 ```
 
 ```bash
-ansible-playbook site.yml --tags networking,dns --step
+ansible-playbook site.yml --tags networking,dns,hostname --step
 ```
 
 ## License

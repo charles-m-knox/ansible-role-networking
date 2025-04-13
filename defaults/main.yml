@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: MIT-0
 ---
 
+# Does not need to be defined, but if it is, the hostname will be set.
+# system_hostname: example
+
 dns:
   disable_systemd_resolved: false
 
